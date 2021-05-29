@@ -64,7 +64,9 @@ class Tracker:
             box0: Optional[Box] = None,
             max_staleness: float = 12.0,
             smooth_score_gamma: float = 0.8,
-            smooth_feature_gamma: float = 0.9):
+            smooth_feature_gamma: float = 0.9,
+            class_name: str = None
+    ):
         self.id = str(uuid.uuid4())
         self.model_spec = model_spec
 
@@ -78,6 +80,7 @@ class Tracker:
 
         self.score = None
         self.feature = None
+        self.class_name = class_name
 
         logger.debug(
             'creating new object tracker with %s and id %s' % (self.model_spec, self.id))
@@ -273,7 +276,7 @@ class MultiObjectTracker:
             cond2 = tracker.staleness < max_staleness
             cond3 = tracker.steps_alive >= min_steps_alive
             if cond1 and cond2 and cond3:
-                tracks.append(Track(id=tracker.id, box=tracker.box, score=tracker.score))
+                tracks.append(Track(id=tracker.id, box=tracker.box, score=tracker.score, class_name=tracker.class_name))
 
         logger.debug('active/all tracks: %d/%d' % (len(self.trackers), len(tracks)))
         return tracks
@@ -308,9 +311,14 @@ class MultiObjectTracker:
         # not assigned detections: create new trackers POF
         assigned_det_idxs = set(matches[:, 1]) if len(matches) > 0 else []
         for det_idx in set(range(len(detections))).difference(assigned_det_idxs):
+
             tracker = Tracker(box0=detections[det_idx].box,
                               model_spec=self.model_spec,
+                              class_name=detections[det_idx].class_name,
                               **self.tracker_kwargs)
+
+            print(detections[det_idx].class_name)
+
             self.trackers.append(tracker)
 
         # unassigned trackers
